@@ -12,11 +12,14 @@ https://docs.djangoproject.com/en/3.0/ref/settings/
 
 from datetime import datetime, timedelta
 import os
+from dotenv import load_dotenv
 from . import conf_e
+
+# 強制重新加載
+load_dotenv(override=True)
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/3.0/howto/deployment/checklist/
@@ -50,6 +53,7 @@ INSTALLED_APPS = [
     'apps.wf',
     'apps.product',
     'apps.line_bot.apps.LineBotConfig',
+    'apps.line_login', # Line Login App
 ]
 
 MIDDLEWARE = [
@@ -298,3 +302,16 @@ LINE_LOGIN_CONFIG = {
     'CALLBACK_URL': f'{BASE_URL}/api/line_bot/callback/',
     'USER_CACHE_TTL': 3600  # 用戶資料快取時間(秒)
 }
+
+
+# LineBot Webhook
+LINE_CHANNEL_ACCESS_TOKEN = os.environ.get('LINE_CHANNEL_ACCESS_TOKEN')
+LINE_CHANNEL_SECRET = os.environ.get('LINE_CHANNEL_SECRET')
+
+
+# Line Login
+LINE_LOGIN_CHANNEL_ID = os.environ.get('LINE_LOGIN_CHANNEL_ID')
+LINE_LOGIN_CHANNEL_SECRET = os.environ.get('LINE_LOGIN_CHANNEL_SECRET')
+LINE_LOGIN_CALLBACK_URL = os.environ.get('LINE_LOGIN_CALLBACK_URL')
+print("♻️♻️♻️♻️")
+print(LINE_LOGIN_CALLBACK_URL)
