@@ -5,7 +5,7 @@ from apps.system.models import User
 
 class LineUser(SoftModel):
     """LINE 用戶模型"""
-    user = models.OneToOneField(
+    user = models.ForeignKey(
         'system.User', 
         on_delete=models.CASCADE, 
         null=True, 
@@ -13,7 +13,7 @@ class LineUser(SoftModel):
         verbose_name='系統用戶',
         related_name='line_profile'
     )
-    line_user_id = models.CharField(max_length=100, unique=True, verbose_name='LINE User ID')
+    line_user_id = models.CharField(max_length=100, verbose_name='LINE User ID')
     display_name = models.CharField(max_length=255, blank=True, verbose_name='顯示名稱')
     status_message = models.TextField(blank=True, null=True, verbose_name='狀態消息')
     picture_url = models.URLField(blank=True, null=True, verbose_name='頭像 URL')
@@ -63,6 +63,7 @@ class LineUser(SoftModel):
             models.Index(fields=['line_user_id']),
             models.Index(fields=['last_interaction']),
         ]
+        unique_together = ('line_user_id', 'is_deleted')
 
 class LineMessage(SoftModel):
     """LINE 消息記錄"""
