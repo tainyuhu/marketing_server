@@ -156,6 +156,7 @@ class LineLoginService:
         # 更新或創建 LINE User
         line_user, created = LineUser.objects.update_or_create(
             line_user_id=user_data['id'],
+            is_deleted=False,  # 將這個條件納入查詢條件
             defaults={
                 'user': request.user,
                 'display_name': user_data.get('name'),
@@ -211,7 +212,10 @@ class LineLoginService:
         
         try:
             # 嘗試找到已綁定的用戶
-            line_user = LineUser.objects.get(line_user_id=user_data['id'])
+            line_user = LineUser.objects.get(
+                line_user_id=user_data['id'],
+                is_deleted=False # 確保用戶未被刪除
+            )
             
             # 更新 LINE 用戶的資料
             self._update_line_user(line_user, user_data, token_data)
@@ -301,7 +305,10 @@ class LineLoginService:
             }, status.HTTP_400_BAD_REQUEST
         try:
             # 檢查 LINE 帳號是否已被其他用戶綁定
-            existing_line_user = LineUser.objects.filter(line_user_id=user_data['id']).first()
+            existing_line_user = LineUser.objects.filter(
+                line_user_id=user_data['id'],
+                is_deleted=False # 確保用戶未被刪除
+            ).first()
             if existing_line_user and existing_line_user.user_id != request.user.id:
                 return False, {
                     'message': '此 LINE 帳號已經被綁定到其他用戶',
@@ -344,7 +351,10 @@ class LineLoginService:
 
         try:
             # 嘗試刪除用戶的 LINE 綁定
-            line_user = LineUser.objects.get(user=user)
+            line_user = LineUser.objects.get(
+                user=user,
+                is_deleted=False # 確保用戶未被刪除
+            )
             line_user.delete()
 
             # 直接返回成功訊息，不再返回狀態碼
