@@ -52,7 +52,8 @@ urlpatterns = [
     path('api/system/', include('apps.system.urls')),
     path('api/monitor/', include('apps.monitor.urls')),
     path('api/wf/', include('apps.wf.urls')),
-    path('api/line_bot/', include('apps.line_bot.urls')),
+    # path('api/line_bot/', include('apps.line_bot.urls')),
+    path('api/line_login/', include('apps.line_login.urls')),
 
     # api文档
     path('api/swagger/', schema_view.with_ui('swagger', cache_timeout=0), name='schema-swagger-ui'),
