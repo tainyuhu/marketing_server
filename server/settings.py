@@ -54,6 +54,7 @@ INSTALLED_APPS = [
     'apps.product',
     'apps.line_bot.apps.LineBotConfig',
     'apps.line_login', # Line Login App
+    'apps.v1'
 ]
 
 MIDDLEWARE = [
