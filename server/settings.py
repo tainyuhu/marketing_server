@@ -50,6 +50,7 @@ INSTALLED_APPS = [
     'apps.wf',
     'apps.product',
     'apps.line_bot.apps.LineBotConfig',
+    'apps.v1'
 ]
 
 MIDDLEWARE = [
