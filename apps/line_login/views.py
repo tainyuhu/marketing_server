@@ -206,6 +206,7 @@ def line_login_callback(request):
     try:
         # 驗證 state參數以防止 CSRF 攻擊
         received_state = request.GET.get('state')
+        print(f"Received state: {received_state}")
         if not received_state:
             print("LINE 回調 - 錯誤: 缺少 state 參數")
             return result_handler.set_error(

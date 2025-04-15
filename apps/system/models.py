@@ -107,7 +107,7 @@ class User(AbstractUser):
     """
     # 基本資料
     avatar = models.CharField(
-        '大頭貼', default='/media/default/avatar.png', max_length=100, null=True, blank=True)
+        '大頭貼', default='/media/default/avatar.png', max_length=255, null=True, blank=True)
     name = models.CharField('姓名', max_length=20, null=True, blank=True)
     gender = models.CharField('性別', max_length=10, choices=[
         ('M', '男'),
@@ -123,7 +123,7 @@ class User(AbstractUser):
     # 聯絡資訊
     phone = models.CharField('手機號碼', max_length=11,
                              null=True, blank=True, unique=True)
-    address = models.CharField('通訊地址', max_length=200,null=True, blank=True)
+    address = models.CharField('常用地址', max_length=200,null=True, blank=True)
     # 員工資訊
     hire_date = models.DateField('入職日期',null=True, blank=True)
     employee_status = models.CharField('員工狀態', max_length=20, choices=[
@@ -132,6 +132,12 @@ class User(AbstractUser):
     ],null=True, blank=True)
     roles = models.ManyToManyField(Role,null=True, blank=True, verbose_name='角色')
     
+    nickname = models.CharField('暱稱', max_length=30, null=True, blank=True)
+    birthday = models.DateField('生日', null=True, blank=True)
+    personality_traits = models.CharField("人格特質", max_length=255, null=True, blank=True)
+    mailing_address_1 = models.CharField("通訊地址一", max_length=255, null=True, blank=True)
+    mailing_address_2 = models.CharField("通訊地址二", max_length=255, null=True, blank=True)
+
     # LINE 相關
     is_line_bound = models.BooleanField('是否綁定LINE', default=False)
     line_bind_time = models.DateTimeField('LINE綁定時間', null=True, blank=True)

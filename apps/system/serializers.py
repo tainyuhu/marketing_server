@@ -147,14 +147,18 @@ class UserModifySerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ['id', 'username', 'name', 'phone', 'email', 'dept',
-                  'position', 'avatar', 'is_active', 'roles', 'is_superuser']
+        fields = ['id', 'last_login', 'is_superuser', 'username', 'first_name', 'last_name', 
+                'email', 'is_staff', 'is_active', 'date_joined', 'name', 'phone', 'avatar', 
+                'dept_id', 'address', 'age', 'company', 'department', 'employee_status', 
+                'gender', 'hire_date', 'is_line_bound', 'line_bind_time', 'line_id', 
+                'birthday', 'nickname', 'mailing_address_1', 'mailing_address_2', 
+                'personality_traits', 'roles']
 
     def validate_phone(self, phone):
         if phone is not None:
-            re_phone = '^1[358]\d{9}$|^147\d{8}$|^176\d{8}$'
+            re_phone = r'^09\d{8}$'
             if not re.match(re_phone, phone):
-                raise serializers.ValidationError('手机号码不合法')
+                raise serializers.ValidationError('手機號碼格式不正確')
         return phone
 
 
@@ -167,20 +171,24 @@ class UserCreateSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ['id', 'username', 'name', 'phone', 'email', 'dept',
-                  'position', 'avatar', 'is_active', 'roles']
+        fields = ['id', 'last_login', 'is_superuser', 'username', 'first_name', 'last_name', 
+                'email', 'is_staff', 'is_active', 'date_joined', 'name', 'phone', 'avatar', 
+                'dept_id', 'address', 'age', 'company', 'department', 'employee_status', 
+                'gender', 'hire_date', 'is_line_bound', 'line_bind_time', 'line_id', 
+                'birthday', 'nickname', 'mailing_address_1', 'mailing_address_2', 
+                'personality_traits', 'roles']
 
     def validate_username(self, username):
         if User.objects.filter(username=username):
-            raise serializers.ValidationError(username + ' 账号已存在')
+            raise serializers.ValidationError(username + '該帳號已經存在')
         return username
 
     def validate_phone(self, phone):
-        re_phone = '^1[358]\d{9}$|^147\d{8}$|^176\d{8}$'
+        re_phone = r'^09\d{8}$'
         if not re.match(re_phone, phone):
-            raise serializers.ValidationError('手机号码不合法')
-        if User.objects.filter(phone=phone):
-            raise serializers.ValidationError('手机号已经被注册')
+            raise serializers.ValidationError('手機號碼格式不正確')
+        if User.objects.filter(phone=phone).exists():
+            raise serializers.ValidationError('此手機號碼已經被註冊')
         return phone
 
 

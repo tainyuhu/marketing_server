@@ -147,26 +147,50 @@ class LineLoginService:
         line_user.picture_url = user_data.get('picture')
         line_user.last_interaction = timezone.now()
         line_user.save()
+
+        # ✅ 同步更新 User
+        if line_user.user:
+            self.update_user_profile_from_line(line_user.user, user_data)
         
         return line_user
 
     def save_line_user_data(self, user_data, token_data, request=None):
-        """儲存或更新Line用戶的資料"""
-        # 計算 token 過期時間
-        # 更新或創建 LINE User
-        line_user, created = LineUser.objects.update_or_create(
-            line_user_id=user_data['id'],
-            is_deleted=False,  # 將這個條件納入查詢條件
-            defaults={
-                'user': request.user,
-                'display_name': user_data.get('name'),
-                'picture_url': user_data.get('picture'),
-                'last_interaction': timezone.now(),
-            }
-        )
+        user_instance = request.user
+        line_user_id = user_data['id']
 
-        return line_user, created
+        # 直接抓到最新那筆紀錄（包含 is_deleted=True）
+        existing = LineUser.all_objects.filter(line_user_id=line_user_id).order_by('-id').first()
 
+        if existing:
+
+            if not existing.is_deleted and existing.user_id != user_instance.id:
+                raise LineAccountNotFound("此 LINE 帳號已綁定其他使用者")
+
+            # ✅ 復活或更新自己的紀錄
+            existing.user = user_instance
+            existing.display_name = user_data.get('name')
+            existing.picture_url = user_data.get('picture')
+            existing.last_interaction = timezone.now()
+            existing.is_deleted = False
+            existing.save()
+
+            self.update_user_profile_from_line(user_instance, user_data)
+            return existing, False
+
+        else:
+            new_user = LineUser.objects.create(
+                line_user_id=line_user_id,
+                user=user_instance,
+                display_name=user_data.get('name'),
+                picture_url=user_data.get('picture'),
+                last_interaction=timezone.now(),
+                is_deleted=False
+            )
+            self.update_user_profile_from_line(user_instance, user_data)
+            return new_user, True
+
+
+   
     def process_login(self, request):
         """處理登入流程的主要邏輯"""
         # 獲取授權參數
@@ -350,12 +374,20 @@ class LineLoginService:
             raise NotAuthenticated("需要登入才能解除綁定")
 
         try:
-            # 嘗試刪除用戶的 LINE 綁定
+            # 找出目前未被軟刪除的綁定紀錄
             line_user = LineUser.objects.get(
                 user=user,
-                is_deleted=False # 確保用戶未被刪除
+                is_deleted=False
             )
-            line_user.delete()
+
+            # ✅ 軟刪除代替實體刪除
+            line_user.is_deleted = True
+            line_user.last_interaction = timezone.now()
+            line_user.user = None
+            line_user.save()
+
+            # ✅ 清除 User 的綁定資訊
+            self.clear_user_line_info(user)
 
             # 直接返回成功訊息，不再返回狀態碼
             return {
@@ -370,3 +402,39 @@ class LineLoginService:
         # 如果刪除時發生錯誤，返回錯誤
         except Exception as e:
             raise LineUnbindError(detail=f"解除綁定時發生錯誤: {str(e)}")
+        
+
+    def update_user_profile_from_line(self, user_instance, user_data):
+        """根據 LINE 使用者資料更新系統 User 模型基本資訊（僅在需要時更新）"""
+        updated = False  # 用來追蹤是否有變更
+
+        if not user_instance.is_line_bound:
+            user_instance.is_line_bound = True
+            updated = True
+
+        if not user_instance.line_bind_time:
+            user_instance.line_bind_time = timezone.now()
+            updated = True
+
+        if not user_instance.line_id:
+            user_instance.line_id = user_data['id']
+            updated = True
+
+        if not user_instance.name and user_data.get('name'):
+            user_instance.name = user_data.get('name')
+            updated = True
+
+        if user_instance.avatar == '/media/default/avatar.png' and user_data.get('picture'):
+            user_instance.avatar = user_data.get('picture')
+            updated = True
+
+        if updated:
+            user_instance.save()
+
+
+    def clear_user_line_info(self, user_instance):
+        """清除 User 模型中與 LINE 綁定有關的欄位"""
+        user_instance.is_line_bound = False
+        user_instance.line_bind_time = None
+        user_instance.line_id = None
+        user_instance.save()

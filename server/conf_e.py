@@ -11,7 +11,7 @@ DATABASES = {
         "ENGINE": "django.db.backends.mysql",
         'NAME': os.environ.get('MYSQL_DATABASE'), # MySQL 資料庫的名稱
         'USER': os.environ.get('MYSQL_USER'), # 使用者名稱
-        'PASSWORD': os.environ.get('MYSQL_PASSWORD'), # 密碼
+        # 'PASSWORD': os.environ.get('MYSQL_PASSWORD'), # 密碼
         'HOST': os.environ.get('DB_HOST', default='db'), # IP 地址
         'PORT': os.environ.get('DB_PORT', default='3306'), # 埠號(mysql為 3306)
         "OPTIONS": {

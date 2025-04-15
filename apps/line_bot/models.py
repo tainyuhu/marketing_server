@@ -24,32 +24,6 @@ class LineUser(SoftModel):
         self.last_interaction = timezone.now()
         self.save()
     
-    def bind_user(self, user: 'User'):
-        """綁定系統用戶"""
-        self.user = user
-        user.is_line_bound = True
-        user.line_bind_time = timezone.now()
-        user.line_id = self.line_user_id  # 同步 LINE ID
-        
-        # 同步用戶資料
-        if not user.avatar and self.picture_url:
-            user.avatar = self.picture_url
-        if not user.name and self.display_name:
-            user.name = self.display_name
-            
-        user.save()
-        self.save()
-
-    def unbind_user(self):
-        """解除綁定系統用戶"""
-        if self.user:
-            self.user.is_line_bound = False
-            self.user.line_bind_time = None
-            self.user.line_id = None  # 清除 LINE ID
-            self.user.save()
-        self.user = None
-        self.save()
-    
     def __str__(self):
         if self.user:
             return f"{self.display_name} ({self.user.username})"

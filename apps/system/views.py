@@ -1,4 +1,5 @@
 import logging
+from apps.line_bot.views import LineBotApi
 from django.shortcuts import get_object_or_404
 from django.conf import settings
 from django.contrib.auth.hashers import check_password, make_password
@@ -503,15 +504,72 @@ class UserViewSet(ModelViewSet):
         """
         user = request.user
         perms = get_permission_list(user)
+
+        # 安全處理 LINE Profile
+        line_profile = None
+        if user.is_line_bound and user.line_id:
+            try:
+                line_user = LineUser.objects.filter(line_user_id=user.line_id).first()
+                if line_user:
+                    line_profile = {
+                        'display_name': line_user.display_name or '',
+                        'picture_url': line_user.picture_url or ''
+                    }
+            except Exception:
+                pass
+
+        # 組裝完整資料
         data = {
             'id': user.id,
             'username': user.username,
-            'name': user.name,
-            'roles': user.roles.values_list('name', flat=True),
-            'avatar': user.avatar,
-            'perms': perms,
+            'name': user.name or '',
+            'roles': list(user.roles.values_list('name', flat=True)),
+            'avatar': user.avatar or '',
+            'perms': perms or [],
+
+            'date_joined': user.date_joined.strftime('%Y-%m-%d') if user.date_joined else '',
+
+            # 個人資料欄位
+            'email': user.email or '',
+            'phone': user.phone or '',
+            'gender': user.gender or '',
+            'nickname': user.nickname or '',
+            'birthday': user.birthday.strftime('%Y-%m-%d') if user.birthday else '',
+
+            # 地址
+            'address': user.address or '',
+            'mailing_address_1': user.mailing_address_1 or '',
+            'mailing_address_2': user.mailing_address_2 or '',
+
+            # LINE 資訊
+            'is_line_bound': user.is_line_bound,
+            'line_id': user.line_id or '',
+            'line_bind_time': user.line_bind_time.isoformat() if user.line_bind_time else None,
+            'line_profile': line_profile
         }
+
+
         return Response(data)
+
+    @action(methods=['put'], detail=False, url_name='update_profile', permission_classes=[IsAuthenticated])
+    def update_profile(self, request):
+        """
+        更新當前用戶的個人資料
+        """
+        user = request.user
+        serializer = UserModifySerializer(user, data=request.data, partial=True)
+        
+        if serializer.is_valid():
+            serializer.save()
+            return Response({
+                'message': '個人資料更新成功',
+                'data': serializer.data
+            }, status=status.HTTP_200_OK)
+        else:
+            return Response({
+                'message': '資料驗證失敗',
+                'errors': serializer.errors
+            }, status=status.HTTP_400_BAD_REQUEST)
     
     @action(methods=['get'], detail=False, url_name='check_line_binding')
     def check_line_binding(self, request):
@@ -582,52 +640,71 @@ class ResetPasswordViewSet(ModelViewSet):
                 'success': False,
                 'message': '請提供工號'
             }, status=status.HTTP_400_BAD_REQUEST)
-
         try:
             # 查找用戶
             user = User.objects.get(username=employee_id)
             
             # 檢查 LINE 綁定狀態
             try:
-                line_user = LineUser.objects.get(id=user.line_id)
+                line_user = LineUser.objects.get(user=user, is_deleted=False)
             except LineUser.DoesNotExist:
                 return Response({
                     'success': False,
                     'message': '此帳號尚未綁定 LINE'
                 }, status=status.HTTP_400_BAD_REQUEST)
-
+                
             # 生成6位數驗證碼
             verification_code = ''.join(
                 [str(random.randint(0, 9)) for _ in range(6)]
             )
             
             # 建立新的驗證碼記錄
-            VerificationCode.objects.create(
+            verification = VerificationCode.objects.create(
                 employee=user,
                 code=verification_code,
                 expires_at=timezone.now() + timedelta(minutes=2)
             )
             
             # 發送 LINE 訊息
+            line_bot_api = LineBotApi()
             line_message = f'您的重設密碼驗證碼為：{verification_code}，2分鐘內有效。'
-            # send_line_message(line_user.line_user_id, line_message)
             
-            return Response({
-                'success': True,
-                'message': f'驗證碼已發送至您的 LINE{line_user.line_user_id}{line_message}'
-            })
+            send_result = line_bot_api.push_message(line_user.line_user_id, line_message)
+            
+            if send_result:
+                return Response({
+                    'success': True,
+                    'message': '驗證碼已發送至您的 LINE'
+                })
+            else:
+                return Response({
+                    'success': False,
+                    'message': 'LINE訊息發送失敗，請稍後再試'
+                }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
             
         except User.DoesNotExist:
             return Response({
                 'success': False,
                 'message': '找不到該員工編號'
             }, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            import traceback
+            return Response({
+                'success': False,
+                'message': f'發送驗證碼時發生錯誤: {str(e)}'
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     @action(methods=['post'], detail=False, url_path='verify-code', permission_classes=[])
     def verify_code(self, request):
         """驗證碼確認"""
         employee_id = request.data.get('employeeId')
         code = request.data.get('code')
+        
+        if not employee_id or not code:
+            return Response({
+                'success': False,
+                'message': '請提供工號和驗證碼'
+            }, status=status.HTTP_400_BAD_REQUEST)
         
         try:
             user = User.objects.get(username=employee_id)
@@ -671,7 +748,8 @@ class ResetPasswordViewSet(ModelViewSet):
                 
                 return Response({
                     'success': True,
-                    'message': '驗證成功'
+                    'message': '驗證成功',
+                    'token': self._generate_reset_token(user)
                 })
             else:
                 return Response({
@@ -684,3 +762,83 @@ class ResetPasswordViewSet(ModelViewSet):
                 'success': False,
                 'message': '找不到該員工編號'
             }, status=status.HTTP_404_NOT_FOUND)
+    
+    @action(methods=['post'], detail=False, url_path='reset-password', permission_classes=[])
+    def reset_password(self, request):
+        """重設密碼"""
+        reset_token = request.data.get('token')
+        new_password = request.data.get('newPassword')
+        
+        if not reset_token or not new_password:
+            return Response({
+                'success': False,
+                'message': '請提供重設令牌和新密碼'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        try:
+            # 解析重設令牌並找到對應用戶
+            user_id = self._validate_reset_token(reset_token)
+            if not user_id:
+                return Response({
+                    'success': False,
+                    'message': '重設令牌無效或已過期'
+                }, status=status.HTTP_400_BAD_REQUEST)
+            
+            user = User.objects.get(id=user_id)
+            
+            # 密碼複雜度檢查
+            if len(new_password) < 8:
+                return Response({
+                    'success': False,
+                    'message': '密碼長度必須至少為8個字符'
+                }, status=status.HTTP_400_BAD_REQUEST)
+            
+            # 設置新密碼
+            user.set_password(new_password)
+            user.save()
+            
+            # 成功重設密碼後，發送LINE通知
+            try:
+                line_user = LineUser.objects.get(user=user, is_deleted=False)
+                line_bot_api = LineBotApi()
+                line_message = '您的密碼已成功重設。如果這不是您本人操作，請立即聯繫系統管理員。'
+                line_bot_api.push_message(line_user.line_user_id, line_message)
+            except:
+                # 即使發送LINE通知失敗，也不影響密碼重設結果
+                pass
+            
+            return Response({
+                'success': True,
+                'message': '密碼已成功重設'
+            })
+            
+        except User.DoesNotExist:
+            return Response({
+                'success': False,
+                'message': '找不到該用戶'
+            }, status=status.HTTP_404_NOT_FOUND)
+    
+    def _generate_reset_token(self, user):
+        """生成重設密碼的臨時令牌"""
+        import jwt
+        from django.conf import settings
+        
+        # 令牌有效期為15分鐘
+        payload = {
+            'user_id': str(user.id),
+            'exp': timezone.now() + timedelta(minutes=15)
+        }
+        
+        token = jwt.encode(payload, settings.SECRET_KEY, algorithm='HS256')
+        return token
+    
+    def _validate_reset_token(self, token):
+        """驗證重設密碼的臨時令牌"""
+        import jwt
+        from django.conf import settings
+        
+        try:
+            payload = jwt.decode(token, settings.SECRET_KEY, algorithms=['HS256'])
+            return payload['user_id']
+        except:
+            return None

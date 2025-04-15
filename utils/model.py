@@ -63,25 +63,37 @@ class BaseModel(models.Model):
     class Meta:
         abstract = True
 
+class AllObjectsManager(SoftDeletableManager):
+    def get_queryset(self):
+        # 回傳所有資料，不論 is_deleted
+        return super().get_queryset(all=True)
+
 class SoftModel(BaseModel):
     """
-    软删除基本表
+    支援軟刪除的基本表
     """
     class Meta:
         abstract = True
 
+    # 預設 manager：只會拿 is_deleted=False 的資料
     objects = SoftDeletableManager()
+
+    # 額外公開一個 manager：拿所有資料（包含 is_deleted=True）
+    all_objects = AllObjectsManager()
 
     def delete(self, using=None, soft=True, *args, **kwargs):
         '''
-        这里需要真删除的话soft=False即可
+        預設為軟刪除，若需永久刪除請傳入 soft=False
         '''
         if soft:
             self.is_deleted = True
             self.save(using=using)
         else:
-
             return super(SoftModel, self).delete(using=using, *args, **kwargs)
+
+
+
+
 
 
 

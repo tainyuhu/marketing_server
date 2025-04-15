@@ -287,22 +287,22 @@ LOGGING = {
 
 
 # 基礎 URL 設定
-BASE_URL = 'https://f1c1-42-74-104-108.ngrok-free.app'
+# BASE_URL = 'https://f1c1-42-74-104-108.ngrok-free.app'
 
 # LINE Messaging API 設定
-LINE_BOT_CONFIG = {
-    'ACCESS_TOKEN': 'I4fjWSLcN7mV3H9gnfpWgN1A9Q77i/X289f3aj2+I2r6T0kpGUATQoaKnfj4CuMVemqoNY8vVJ8Mrowy1DTwmvGKNb78aSB4i7I1wshpVO4DVVIViPQcg0EEo6Hv/3w0e1+aBFT254G8rm6veTIxnAdB04t89/1O/w1cDnyilFU=',
-    'CHANNEL_SECRET': 'ec4c0725f5dd22c7416e8d7ae7029f69',
-    'WEBHOOK_URL': f'{BASE_URL}/api/line_bot/webhook/',
-}
+# LINE_BOT_CONFIG = {
+#     'ACCESS_TOKEN': 'I4fjWSLcN7mV3H9gnfpWgN1A9Q77i/X289f3aj2+I2r6T0kpGUATQoaKnfj4CuMVemqoNY8vVJ8Mrowy1DTwmvGKNb78aSB4i7I1wshpVO4DVVIViPQcg0EEo6Hv/3w0e1+aBFT254G8rm6veTIxnAdB04t89/1O/w1cDnyilFU=',
+#     'CHANNEL_SECRET': 'ec4c0725f5dd22c7416e8d7ae7029f69',
+#     'WEBHOOK_URL': f'{BASE_URL}/api/line_bot/webhook/',
+# }
 
-# LINE Login 設定
-LINE_LOGIN_CONFIG = {
-    'CHANNEL_ID': '2006534373',
-    'CHANNEL_SECRET': 'd0db98adf158a870baaf968785535d49',
-    'CALLBACK_URL': f'{BASE_URL}/api/line_bot/callback/',
-    'USER_CACHE_TTL': 3600  # 用戶資料快取時間(秒)
-}
+# # LINE Login 設定
+# LINE_LOGIN_CONFIG = {
+#     'CHANNEL_ID': '2006534373',
+#     'CHANNEL_SECRET': 'd0db98adf158a870baaf968785535d49',
+#     'CALLBACK_URL': f'{BASE_URL}/api/line_bot/callback/',
+#     'USER_CACHE_TTL': 3600  # 用戶資料快取時間(秒)
+# }
 
 
 # LineBot Webhook
