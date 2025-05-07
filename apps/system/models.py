@@ -117,7 +117,7 @@ class User(AbstractUser):
     # 公司資料
     company = models.CharField('公司', max_length=100,null=True, blank=True)
     department = models.CharField('部門', max_length=50,null=True, blank=True)
-    position = models.ManyToManyField(Position, verbose_name='職位',null=True, blank=True)
+    position = models.ManyToManyField(Position, verbose_name='職位', blank=True)
     dept = models.ForeignKey(
         Organization, null=True, blank=True, on_delete=models.SET_NULL, verbose_name='群組')
     # 聯絡資訊
@@ -130,7 +130,7 @@ class User(AbstractUser):
         ('active', '在職'),
         ('leave', '離職'),
     ],null=True, blank=True)
-    roles = models.ManyToManyField(Role,null=True, blank=True, verbose_name='角色')
+    roles = models.ManyToManyField(Role, blank=True, verbose_name='角色')
     
     nickname = models.CharField('暱稱', max_length=30, null=True, blank=True)
     birthday = models.DateField('生日', null=True, blank=True)

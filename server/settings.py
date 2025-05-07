@@ -136,7 +136,8 @@ if DEBUG:
     )
 
 MEDIA_URL = '/media/'
-MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+MEDIA_ROOT = os.path.join(BASE_DIR, 'uploads')
+# MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 # 默认主键
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
@@ -183,20 +184,23 @@ AUTHENTICATION_BACKENDS = (
     'apps.system.authentication.CustomBackend',
 )
 
-# # 缓存配置,使用redis
-# CACHES = {
-#     "default": {
-#         "BACKEND": "django.core.cache.backends.redis.RedisCache",
-#         "LOCATION": "redis://127.0.0.1:6379/1",
-#     }
-# }
+# 使用 .env 中設定的 Redis URL 
+REDIS_URL = os.environ.get("REDIS_URL")
 
-# # celery配置,celery正常运行必须安装redis
-# CELERY_BROKER_URL = "redis://localhost:6379/0"   # 任务存储
-# CELERYD_MAX_TASKS_PER_CHILD = 100  # 每个worker最多执行300个任务就会被销毁，可防止内存泄露
-# CELERY_TIMEZONE = 'Asia/Shanghai'  # 设置时区
-# CELERY_ENABLE_UTC = True  # 启动时区设置
-# CELERY_BEAT_SCHEDULER = 'django_celery_beat.schedulers:DatabaseScheduler'
+# Redis cache 使用 DB1
+CACHES = {
+    "default": {
+        "BACKEND": "django.core.cache.backends.redis.RedisCache",
+        "LOCATION": REDIS_URL.replace('/6379', '/6379/1'),
+    }
+}
+
+# Celery 使用 Redis DB0
+CELERY_BROKER_URL = REDIS_URL  # 任務存儲
+CELERYD_MAX_TASKS_PER_CHILD = 100
+CELERY_TIMEZONE = 'Asia/Shanghai'
+CELERY_ENABLE_UTC = True
+CELERY_BEAT_SCHEDULER = 'django_celery_beat.schedulers:DatabaseScheduler'
 
 # swagger配置
 SWAGGER_SETTINGS = {
@@ -283,6 +287,15 @@ LOGGING = {
             'propagate': True
         },
     }
+}
+
+from celery.schedules import crontab
+
+CELERY_BEAT_SCHEDULE = {
+    'check-expired-orders': {
+        'task': 'apps.v1.tasks.check_expired_orders',
+        'schedule': crontab(minute='*/15'),  # 每 15 分鐘執行一次
+    },
 }
 
 

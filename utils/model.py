@@ -1,7 +1,7 @@
 from django.db import models
 import django.utils.timezone as timezone
 from django.db.models.query import QuerySet
-
+from django.conf import settings
 # 自定义软删除查询基类
 
 
@@ -59,6 +59,21 @@ class BaseModel(models.Model):
         auto_now=True, verbose_name='修改时间', help_text='修改时间')
     is_deleted = models.BooleanField(
         default=False, verbose_name='删除标记', help_text='删除标记')
+    
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        verbose_name="建立者",
+        null=True, blank=True,
+        on_delete=models.SET_NULL,
+        related_name="%(class)s_created"
+    )
+    updated_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        verbose_name="更新者",
+        null=True, blank=True,
+        on_delete=models.SET_NULL,
+        related_name="%(class)s_updated"
+    )
 
     class Meta:
         abstract = True
