@@ -52,6 +52,8 @@ urlpatterns = [
     path('api/system/', include('apps.system.urls')),
     path('api/monitor/', include('apps.monitor.urls')),
     path('api/wf/', include('apps.wf.urls')),
+    #v1 版本的
+    path('api/wms/', include('apps.v1.urls')),
     # path('api/line_bot/', include('apps.line_bot.urls')),
     path('api/line_login/', include('apps.line_login.urls')),
 
